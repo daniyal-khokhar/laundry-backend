@@ -4,7 +4,7 @@ import { OrdersModule } from './orders/orders.module';
 
 @Module({
   imports: [
-    // FIX: Yeh directly aapki .env file se connection string uthaye ga
+    // Yeh directly aapki Vercel ya local .env file se connection string uthaye ga
     MongooseModule.forRoot(process.env.MONGO_CON_STRING || 'mongodb://127.0.0.1:27017/decent-laundry'),
     OrdersModule,
   ],
