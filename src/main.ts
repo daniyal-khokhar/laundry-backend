@@ -4,20 +4,18 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // 1. Enable CORS for Frontend Connectivity
+  // 1. PROPER CORS FIX: Is men saare domains open kar diye hain testing k liye
   app.enableCors({
-    origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : '*',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    origin: true, // 'true' karne se har incoming domain (Vercel frontend, local) auto-allow ho jata hy
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
+    allowedHeaders: 'Content-Type, Accept, Authorization',
   });
 
-  // 2. Global Prefix (Optional: Agar aapne pehle use kiya ho to text ko /api banata hy, warna ignore)
-  // app.setGlobalPrefix('api');
+  // 2. Global Prefix lagayein kyunki aap `/api/orders` hit kar rhe ho
+  app.setGlobalPrefix('api');
 
-  // 3. Vercel dynamic port allocation handle karne k liye
   const port = process.env.PORT || 3002;
   await app.listen(port);
 }
-
-// ⚠️ Vercel serverless environment k liye initialization call zaroori hy
 bootstrap();
