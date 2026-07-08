@@ -1,11 +1,8 @@
 import { Controller, Get } from '@nestjs/common';
-import { AppService } from './app.service';
 
-@Controller()
+@Controller() // Isko khali chorna hai taake yeh '/' par listen kare
 export class AppController {
-  constructor(private readonly appService: AppService) {}
-
-@Get()
+  @Get() // Isko bhi khali chorna hai
   getHello(): string {
     return 'Decent Laundry Backend is running successfully!';
   }
