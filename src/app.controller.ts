@@ -1,9 +1,19 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, HttpCode } from '@nestjs/common';
+import { AppService } from './app.service';
 
-@Controller() // Isko khali chorna hai taake yeh '/' par listen kare
+@Controller()
 export class AppController {
-  @Get() // Isko bhi khali chorna hai
+  constructor(private readonly appService: AppService) {}
+
+  @Get()
   getHello(): string {
-    return 'Decent Laundry Backend is running successfully!';
+    return 'Decent Laundry Backend is running perfectly!';
+  }
+
+  // Favicon ka 404 error khatam karne ke liye
+  @Get('favicon.ico')
+  @HttpCode(204)
+  getFavicon() {
+    return;
   }
 }
