@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
-import { ExpressAdapter } from '@nestjs/platform-express';
-import express = require('express');
 import { AppModule } from '../src/app.module';
+import { ExpressAdapter } from '@nestjs/platform-express';
+import express from 'express';
 
 const server = express();
 
@@ -11,8 +11,10 @@ export const createNestServer = async (expressInstance) => {
     new ExpressAdapter(expressInstance),
   );
   
-  // Agar cors chahiye to:
-  app.enableCors();
+  app.enableCors(); // CORS enable rakhein taake frontend block na ho
+  
+  // 🟢 YEH LINE ADD KAREIN: is se NestJS ko pata chalega ke har route se pehle /api aayega
+  app.setGlobalPrefix('api'); 
   
   await app.init();
 };
