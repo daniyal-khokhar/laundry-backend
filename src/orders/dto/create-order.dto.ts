@@ -1,4 +1,36 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString, IsEmail, IsIn } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsEmail,
+  IsIn,
+  IsArray,
+  ValidateNested,
+  ArrayMinSize,
+  Min,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+
+// ✨ Ek single item ka shape jo "itemsList" array ke andar aata hai
+// { id, serviceType, quantity, itemPrice }
+export class OrderItemDto {
+  @IsString()
+  @IsNotEmpty()
+  id!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  serviceType!: string;
+
+  @IsNumber()
+  @Min(1)
+  quantity!: number;
+
+  @IsNumber()
+  @Min(0)
+  itemPrice!: number;
+}
 
 export class CreateOrderDto {
   @IsString()
@@ -18,8 +50,8 @@ export class CreateOrderDto {
   customerPhone!: string;
 
   @IsString()
-  @IsNotEmpty()
-  customerAddress!: string;
+  @IsOptional()
+  customerAddress?: string;
 
   @IsEmail()
   @IsOptional()
@@ -33,6 +65,16 @@ export class CreateOrderDto {
   @IsOptional()
   dressDescription?: string;
 
+  // ✨ NEW: multiple items per order (cart). At least one item required.
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => OrderItemDto)
+  itemsList!: OrderItemDto[];
+
+  // Kept for backward compatibility / quick filtering & list display.
+  // Frontend sends these as the aggregate of itemsList (first item's serviceType,
+  // total quantity, and grand total price) so old dashboards/reports still work.
   @IsString()
   @IsNotEmpty()
   serviceType!: string;
@@ -46,7 +88,7 @@ export class CreateOrderDto {
   price!: number;
 
   @IsString()
-  @IsIn(['paid', 'unpaid'])
+  @IsIn(['paid', 'unpaid', 'partial'])
   paymentStatus!: string;
 
   @IsString()
