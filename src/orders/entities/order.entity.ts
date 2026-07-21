@@ -1,9 +1,9 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
+import { OrderStatus } from '../../enums/order-status.enum';
 
 export type OrderDocument = Order & Document;
 
-// ✨ NEW: Sub-schema for a single cart item — { id, serviceType, quantity, itemPrice }
 @Schema({ _id: false })
 export class OrderItem {
   @Prop({ required: true })
@@ -38,22 +38,15 @@ export class Order {
   @Prop({ required: false, default: '' })
   customerAddress!: string;
 
-  @Prop({ required: false, default: '' })
-  customerEmail!: string;
-
   @Prop({ required: true })
   dressCode!: string;
 
   @Prop({ required: false, default: '' })
   dressDescription!: string;
 
-  // ✨ NEW: multiple items (cart) belonging to this order
   @Prop({ type: [OrderItemSchema], default: [] })
   itemsList!: OrderItem[];
 
-  // Kept for backward compatibility with existing list/filter/report code.
-  // These hold the aggregate of itemsList: first item's serviceType,
-  // sum of quantities, and grand total price.
   @Prop({ required: true })
   serviceType!: string;
 
@@ -71,6 +64,14 @@ export class Order {
 
   @Prop({ required: false, default: '' })
   notes!: string;
+
+  // ✅ STATUS FIELD - YAHAN SE RESPONSE MEIN AANI CHAHIYE
+  @Prop({ 
+    required: true, 
+    default: OrderStatus.PENDING,
+    enum: OrderStatus
+  })
+  status!: OrderStatus;
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);

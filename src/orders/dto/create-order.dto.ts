@@ -9,11 +9,11 @@ import {
   ValidateNested,
   ArrayMinSize,
   Min,
+  IsEnum,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { OrderStatus } from '../../enums/order-status.enum';
 
-// ✨ Ek single item ka shape jo "itemsList" array ke andar aata hai
-// { id, serviceType, quantity, itemPrice }
 export class OrderItemDto {
   @IsString()
   @IsNotEmpty()
@@ -53,10 +53,6 @@ export class CreateOrderDto {
   @IsOptional()
   customerAddress?: string;
 
-  @IsEmail()
-  @IsOptional()
-  customerEmail?: string;
-
   @IsString()
   @IsNotEmpty()
   dressCode!: string;
@@ -65,16 +61,12 @@ export class CreateOrderDto {
   @IsOptional()
   dressDescription?: string;
 
-  // ✨ NEW: multiple items per order (cart). At least one item required.
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => OrderItemDto)
   itemsList!: OrderItemDto[];
 
-  // Kept for backward compatibility / quick filtering & list display.
-  // Frontend sends these as the aggregate of itemsList (first item's serviceType,
-  // total quantity, and grand total price) so old dashboards/reports still work.
   @IsString()
   @IsNotEmpty()
   serviceType!: string;
@@ -98,4 +90,9 @@ export class CreateOrderDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  // ✅ STATUS FIELD WITH ENUM
+ @IsEnum(OrderStatus)
+  @IsOptional()
+  status!: OrderStatus;
 }

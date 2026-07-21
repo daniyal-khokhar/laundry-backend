@@ -4,53 +4,83 @@ import { Model } from 'mongoose';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { Order, OrderDocument } from './entities/order.entity';
-
+import { OrderStatus } from '../enums/order-status.enum';
 
 @Injectable()
 export class OrdersService {
-  // 1. Yahan MongoDB ka Model inject kiya hy
   constructor(
     @InjectModel(Order.name) private orderModel: Model<OrderDocument>
   ) {}
 
-  // 2. Data save karne ka real method
   async create(createOrderDto: CreateOrderDto): Promise<Order> {
-    console.log('Service: Saving new order to MongoDB');
+    console.log('📝 DTO received:', JSON.stringify(createOrderDto, null, 2));
+    
+    // ✅ Default status set karein
+    if (!createOrderDto.status) {
+      createOrderDto.status = OrderStatus.PENDING;
+    }
+    
+    console.log('✅ Status set to:', createOrderDto.status);
+    
     const newOrder = new this.orderModel(createOrderDto);
-    return await newOrder.save();
+    const savedOrder = await newOrder.save();
+    
+    console.log('💾 Saved order (raw):', JSON.stringify(savedOrder, null, 2));
+    console.log('📌 Status in saved order:', savedOrder.status);
+    
+    // ✅ Forcefully fetch the saved document to ensure all fields
+    const populatedOrder = await this.orderModel.findById(savedOrder._id).lean().exec();
+    console.log('📌 Populated order status:', populatedOrder?.status);
+    
+    return populatedOrder as Order;
   }
 
-  async findAll() {
-    return await this.orderModel.find().exec();
+  async findAll(filter: any = {}): Promise<Order[]> {
+    console.log('🔍 Finding orders with filter:', filter);
+    const orders = await this.orderModel.find(filter).lean().exec();
+    console.log(`📤 Found ${orders.length} orders`);
+    if (orders.length > 0) {
+      console.log('📌 First order status:', orders[0].status);
+    }
+    return orders;
   }
 
-  async findOne(id: string) {
-    const order = await this.orderModel.findById(id).exec();
+  async findOne(id: string): Promise<Order> {
+    const order = await this.orderModel.findById(id).lean().exec();
     if (!order) throw new NotFoundException(`Order with ID ${id} not found`);
+    console.log('📌 Order status:', order.status);
     return order;
   }
 
-  // 3. Branch ID se data filter karne ka real method
   async getOrdersByBranch(branchId: string): Promise<Order[]> {
-    try {
-      console.log(`Service: Fetching orders from MongoDB for Branch ID: ${branchId}`);
-      
-      // Database query: branchId match karne wale orders dhoondo
-      const filteredOrders = await this.orderModel.find({ branchId }).exec();
-
-      if (!filteredOrders || filteredOrders.length === 0) {
-        throw new NotFoundException(`No orders found for Branch ID: ${branchId}`);
-      }
-
-      return filteredOrders;
-    } catch (error) {
-      throw error;
+    console.log(`📂 Fetching orders for branch: ${branchId}`);
+    const orders = await this.orderModel.find({ branchId }).lean().exec();
+    if (!orders || orders.length === 0) {
+      throw new NotFoundException(`No orders found for Branch ID: ${branchId}`);
     }
+    return orders;
   }
 
-  async update(id: string, updateOrderDto: UpdateOrderDto) {
+  async updateStatus(id: string, status: OrderStatus): Promise<Order> {
+    console.log(`🔄 Updating order ${id} status to: ${status}`);
+    const updatedOrder = await this.orderModel
+      .findByIdAndUpdate(
+        id, 
+        { status }, 
+        { new: true }
+      )
+      .lean()
+      .exec();
+      
+    if (!updatedOrder) throw new NotFoundException(`Order #${id} not found`);
+    console.log('✅ Updated order status:', updatedOrder.status);
+    return updatedOrder;
+  }
+
+  async update(id: string, updateOrderDto: UpdateOrderDto): Promise<Order> {
     const updatedOrder = await this.orderModel
       .findByIdAndUpdate(id, updateOrderDto, { new: true })
+      .lean()
       .exec();
     if (!updatedOrder) throw new NotFoundException(`Order #${id} not found`);
     return updatedOrder;
