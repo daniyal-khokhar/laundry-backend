@@ -9,7 +9,9 @@ import {
   ValidateNested,
   ArrayMinSize,
   Min,
+  Max,
   IsEnum,
+  IsDateString,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { OrderStatus } from '../../enums/order-status.enum';
@@ -75,6 +77,8 @@ export class CreateOrderDto {
   @IsNotEmpty()
   quantity!: number;
 
+  // ✅ NOTE: this is the NET payable amount (after discount is applied) —
+  // the frontend sends grandTotal - discountAmount here as `price`.
   @IsNumber()
   @IsNotEmpty()
   price!: number;
@@ -92,7 +96,121 @@ export class CreateOrderDto {
   notes?: string;
 
   // ✅ STATUS FIELD WITH ENUM
- @IsEnum(OrderStatus)
+  @IsEnum(OrderStatus)
   @IsOptional()
   status!: OrderStatus;
+
+  // optional, normally only set via the send/receive-laundry endpoints,
+  // but allowed here in case an order is created directly with a known history.
+  @IsDateString()
+  @IsOptional()
+  sendingDate!: string;
+
+  @IsDateString()
+  @IsOptional()
+  receivingDate!: string;
+
+  // ✅ NEW: discount % applied on the raw item total (0-100).
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  @Max(100)
+  discountPercent?: number;
+
+  // ✅ NEW: Rs value of the discount (grandTotal * discountPercent / 100).
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  discountAmount?: number;
+
+  // ✅ NEW: bill amount after discount — should equal `price` above.
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  netPayable?: number;
+
+  // ✅ NEW: how much the customer has actually paid/advanced right now.
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  amountReceived?: number;
+
+  // ✅ NEW: signed balance. Positive = customer still owes this much.
+  // Negative = customer overpaid (this is their advance/credit).
+  @IsNumber()
+  @IsOptional()
+  balanceAmount?: number;
+
+  // ✅ NEW: convenience mirror of balanceAmount when positive (>= 0 always).
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  balanceDue?: number;
+
+  // ✅ NEW: convenience mirror of |balanceAmount| when the customer overpaid.
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  advanceCredit?: number;
+}
+
+// ✅ dedicated DTO for the status-update endpoint (PATCH /orders/:id/status).
+// Used for the plain "Mark as Ready" / "Mark as Delivered" actions AND for the
+// laundry "Send to Laundry" (status -> processing, sendingDate stamped) and
+// "Received from Laundry" (status -> pending, receivingDate stamped) actions.
+export class UpdateOrderStatusDto {
+  @IsEnum(OrderStatus)
+  @IsNotEmpty()
+  status!: OrderStatus;
+
+  @IsDateString()
+  @IsOptional()
+  sendingDate?: string;
+
+  @IsDateString()
+  @IsOptional()
+  receivingDate?: string;
+
+  // ✅ NEW: how many pieces were sent to laundry, set when status -> processing
+  // via the "Send to Laundry" quantity dialog on the frontend.
+  @IsNumber()
+  @IsOptional()
+  @Min(1)
+  laundryQuantity?: number;
+
+    // ✅ Ensure all new fields are optional and can be updated
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  @Max(100)
+  discountPercent?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  discountAmount?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  netPayable?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  amountReceived?: number;
+
+  @IsNumber()
+  @IsOptional()
+  balanceAmount?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  balanceDue?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  advanceCredit?: number;
 }
