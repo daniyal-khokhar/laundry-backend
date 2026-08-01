@@ -74,6 +74,9 @@ export class Order {
   })
   status!: OrderStatus;
 
+  @Prop({ required: false, type: Date })
+  deliveryDate?: Date;
+
   // stamped when the order is sent to laundry (status -> processing)
   @Prop({ required: false, type: Date })
   sendingDate?: Date;
@@ -113,6 +116,14 @@ export class Order {
   // ✅ NEW: convenience mirror of |balanceAmount| when the customer overpaid
   @Prop({ required: false, type: Number, default: 0 })
   advanceCredit?: number;
+
+  // ✅ ADD: stamped when order is marked delivered
+  @Prop({ required: false, type: Date })
+  deliveredDate?: Date;
+
+  // ✅ ADD: how many pieces were actually received back from laundry
+  @Prop({ required: false, type: Number, default: 0 })
+  receivedQuantity?: number;
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);

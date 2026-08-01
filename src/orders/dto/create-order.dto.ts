@@ -100,6 +100,11 @@ export class CreateOrderDto {
   @IsOptional()
   status!: OrderStatus;
 
+  // ✅ NEW: delivery date selected on the order form
+  @IsDateString()
+  @IsOptional()
+  deliveryDate?: string;
+
   // optional, normally only set via the send/receive-laundry endpoints,
   // but allowed here in case an order is created directly with a known history.
   @IsDateString()
@@ -213,4 +218,18 @@ export class UpdateOrderStatusDto {
   @IsOptional()
   @Min(0)
   advanceCredit?: number;
+
+  // ✅ NEW: delivery date selected on the order form
+  @IsDateString()
+  @IsOptional()
+  deliveryDate?: string;
+
+  @IsString()
+  @IsOptional()
+  @IsIn(['paid', 'unpaid', 'partial'])
+  paymentStatus?: string;
+
+  @IsString()
+  @IsOptional()
+  paymentMethod?: string;
 }
