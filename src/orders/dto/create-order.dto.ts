@@ -137,7 +137,6 @@ export class CreateOrderDto {
   // ✅ NEW: how much the customer has actually paid/advanced right now.
   @IsNumber()
   @IsOptional()
-  @Min(0)
   amountReceived?: number;
 
   // ✅ NEW: signed balance. Positive = customer still owes this much.
@@ -202,7 +201,6 @@ export class UpdateOrderStatusDto {
 
   @IsNumber()
   @IsOptional()
-  @Min(0)
   amountReceived?: number;
 
   @IsNumber()
