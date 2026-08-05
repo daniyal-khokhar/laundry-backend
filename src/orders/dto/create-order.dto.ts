@@ -231,3 +231,17 @@ export class UpdateOrderStatusDto {
   @IsOptional()
   paymentMethod?: string;
 }
+
+export class ApplyPaymentDto {
+  @IsString()
+  @IsNotEmpty()
+  dressCode!: string;
+
+  @IsNumber()
+  @Min(0.01)
+  amount!: number;
+
+  @IsString()
+  @IsIn(['cash', 'account', 'online'])
+  paymentMethod!: string;
+}

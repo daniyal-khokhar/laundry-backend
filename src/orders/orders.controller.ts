@@ -1,7 +1,7 @@
 // orders.controller.ts
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpException, HttpStatus } from '@nestjs/common';
 import { OrdersService } from './orders.service';
-import { CreateOrderDto } from './dto/create-order.dto';
+import { ApplyPaymentDto, CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { OrderStatus } from '../enums/order-status.enum';
 
@@ -79,8 +79,32 @@ export class OrdersController {
     };
   }
 
+  @Post('pay')
+  async applyPayment(@Body() applyPaymentDto: ApplyPaymentDto) {
+    const result = await this.ordersService.applyPaymentToDressCode(
+      applyPaymentDto.dressCode,
+      applyPaymentDto.amount,
+      applyPaymentDto.paymentMethod
+    );
+    return {
+      success: true,
+      data: result,
+      message: `Rs. ${applyPaymentDto.amount} applied successfully`,
+    };
+  }
+
+  @Get('balance/:dressCode')
+  async getBalance(@Param('dressCode') dressCode: string) {
+    const balance = await this.ordersService.getDressCodeBalance(dressCode);
+    return {
+      success: true,
+      data: balance,
+    };
+  }
+
   @Delete(':id')
   async remove(@Param('id') id: string) {
     return this.ordersService.remove(id);
   }
+  
 }

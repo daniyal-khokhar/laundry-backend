@@ -112,4 +112,121 @@ export class OrdersService {
     }
     return { message: `Order #${id} successfully removed` };
   }
+
+  /**
+   * Total outstanding balance for a dress code = SUM of balanceDue
+   * across all its records (minus any advanceCredit sitting on them).
+   * This is what you show as "Total Due" for that customer/dress code.
+   */
+  async getDressCodeBalance(dressCode: string) {
+    const orders = await this.orderModel
+      .find({ dressCode })
+      .sort({ createdAt: 1 }) // oldest first
+      .lean()
+      .exec();
+
+    const totalDue = orders.reduce(
+      (sum, o) => sum + (Number(o.balanceDue) || 0) - (Number(o.advanceCredit) || 0),
+      0
+    );
+
+    return {
+      dressCode,
+      totalDue: Math.max(0, totalDue),
+      totalAdvance: totalDue < 0 ? Math.abs(totalDue) : 0,
+      recordCount: orders.length,
+      records: orders.map((o) => ({
+        id: o._id,
+        createdAt: (o as any).createdAt,
+        balanceDue: o.balanceDue || 0,
+        advanceCredit: o.advanceCredit || 0,
+        paymentStatus: o.paymentStatus,
+      })),
+    };
+  }
+
+  /**
+   * FIFO payment allocation.
+   * Payment sabse purani (oldest) unpaid record se start hoke,
+   * ek-ek karke records ka balanceDue clear karta hai.
+   * Agar amount se zyada records clear ho jayein to extra amount
+   * sabse aakhri touched record par advanceCredit ban jata hai.
+   */
+  async applyPaymentToDressCode(
+    dressCode: string,
+    amount: number,
+    paymentMethod: string
+  ) {
+    if (amount <= 0) {
+      throw new NotFoundException('Payment amount must be greater than 0');
+    }
+
+    // Sirf wo records jinka abhi due baaki hai, oldest -> newest
+    const dueOrders = await this.orderModel
+      .find({ dressCode, balanceDue: { $gt: 0 } })
+      .sort({ createdAt: 1 })
+      .exec();
+
+    if (dueOrders.length === 0) {
+      throw new NotFoundException(
+        `No outstanding due records found for dress code ${dressCode}`
+      );
+    }
+
+    let remaining = amount;
+    const updatedRecords: any[] = [];
+
+    for (const order of dueOrders) {
+      if (remaining <= 0) break;
+
+      const currentDue = Number(order.balanceDue) || 0;
+      const currentReceived = Number(order.amountReceived) || 0;
+
+      if (currentDue <= remaining) {
+        // Ye record poora clear ho jayega
+        remaining -= currentDue;
+        order.balanceDue = 0;
+        order.advanceCredit = 0;
+        order.amountReceived = currentReceived + currentDue;
+        order.paymentStatus = 'paid';
+      } else {
+        // Ye record partial clear hoga, payment yahin khatam
+        order.balanceDue = currentDue - remaining;
+        order.amountReceived = currentReceived + remaining;
+        order.paymentStatus = 'partial';
+        remaining = 0;
+      }
+
+      order.paymentMethod = paymentMethod as any;
+      await order.save();
+      updatedRecords.push({
+        id: order._id,
+        balanceDue: order.balanceDue,
+        paymentStatus: order.paymentStatus,
+      });
+    }
+
+    // Agar payment total due se zyada thi -> baqi amount advance ban jaye
+    // sabse aakhri (latest) touched record par
+    if (remaining > 0 && updatedRecords.length > 0) {
+      const lastTouchedId = updatedRecords[updatedRecords.length - 1].id;
+      const lastOrder = await this.orderModel.findById(lastTouchedId).exec();
+      if (lastOrder) {
+        lastOrder.advanceCredit = (Number(lastOrder.advanceCredit) || 0) + remaining;
+        await lastOrder.save();
+        updatedRecords[updatedRecords.length - 1].advanceCredit = lastOrder.advanceCredit;
+        remaining = 0;
+      }
+    }
+
+    const newBalance = await this.getDressCodeBalance(dressCode);
+
+    return {
+      dressCode,
+      amountApplied: amount,
+      unallocatedAmount: remaining, // hamesha 0 hona chahiye
+      updatedRecords,
+      newBalance,
+    };
+  }
 }
