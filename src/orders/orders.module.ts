@@ -11,5 +11,6 @@ import { Order, OrderSchema } from './entities/order.entity'; // Path check kar 
   ],
   controllers: [OrdersController],
   providers: [OrdersService],
+  exports: [OrdersService, OrdersModule], // OrdersService ko export karna zaruri hai taaki DashboardModule me use ho sake
 })
 export class OrdersModule {}
